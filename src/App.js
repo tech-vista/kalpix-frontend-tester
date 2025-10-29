@@ -67,6 +67,7 @@ function App() {
 		redFuryActive: false,
 		shieldWindowActive: false,
 		swapRequestActive: false,
+		availableSwapTargets: [], // 🔄 7-0 Rule: Available targets for hand swap
 
 		// Scores
 		scores: {},
@@ -307,6 +308,18 @@ function App() {
 					// ⚠️ DEPRECATED: timer_sync is now consolidated into state_delta with eventType="timer_sync"
 					// Keeping this for backward compatibility during transition
 					handleTimerSync(eventData);
+					break;
+				case "swap_request":
+					handleSwapRequest(eventData);
+					break;
+				case "swap_selection_pending":
+					handleSwapSelectionPending(eventData);
+					break;
+				case "swap_complete":
+					handleSwapComplete(eventData);
+					break;
+				case "swap_timeout":
+					handleSwapTimeout(eventData);
 					break;
 				case "game_ended":
 					handleGameEnd(eventData);
@@ -697,6 +710,91 @@ function App() {
 
 			if (data.playerName) {
 				showNotification(`👋 ${data.playerName} left the game`);
+			}
+		},
+		[showNotification]
+	);
+
+	// 🔄 7-0 Rule: Handle swap request (when player plays 0 card)
+	const handleSwapRequest = useCallback(
+		(data) => {
+			console.log("🔄 Swap request received", data);
+
+			// Check if this player needs to choose a swap target
+			const myUserId = myUserIdRef.current || session?.user_id;
+			if (data.playerId === myUserId) {
+				// This player played the 0 card and needs to choose swap target
+				setGameState((prev) => ({
+					...prev,
+					swapRequestActive: true,
+					availableSwapTargets: data.availableTargets || [],
+				}));
+				showNotification("🔄 Choose a player to swap hands with!");
+			} else {
+				// Another player played 0 card, just show notification
+				const playerName =
+					gameState.players?.find((p) => p.userId === data.playerId)
+						?.username || "A player";
+				showNotification(
+					`🔄 ${playerName} is choosing who to swap hands with...`
+				);
+			}
+		},
+		[session, showNotification, gameState.players]
+	);
+
+	// 🔄 7-0 Rule: Handle swap selection pending (notification to other players)
+	const handleSwapSelectionPending = useCallback(
+		(data) => {
+			console.log("⏳ Swap selection pending", data);
+
+			// Show notification to other players
+			if (data.message) {
+				showNotification(data.message);
+			}
+		},
+		[showNotification]
+	);
+
+	// 🔄 7-0 Rule: Handle swap complete (after swap target chosen)
+	const handleSwapComplete = useCallback(
+		(data) => {
+			console.log("✅ Swap complete", data);
+
+			// Clear swap request state
+			setGameState((prev) => ({
+				...prev,
+				swapRequestActive: false,
+				availableSwapTargets: [],
+			}));
+
+			// Show notification about the swap
+			const requesterName =
+				gameState.players?.find((p) => p.userId === data.requester)?.username ||
+				"Player";
+			const targetName =
+				gameState.players?.find((p) => p.userId === data.target)?.username ||
+				"Player";
+			showNotification(`🔄 ${requesterName} swapped hands with ${targetName}!`);
+		},
+		[showNotification, gameState.players]
+	);
+
+	// 🔄 7-0 Rule: Handle swap timeout (10 seconds expired without selection)
+	const handleSwapTimeout = useCallback(
+		(data) => {
+			console.log("⏰ Swap timeout", data);
+
+			// Clear swap request state
+			setGameState((prev) => ({
+				...prev,
+				swapRequestActive: false,
+				availableSwapTargets: [],
+			}));
+
+			// Show notification
+			if (data.message) {
+				showNotification(`⏰ ${data.message}`);
 			}
 		},
 		[showNotification]

@@ -293,25 +293,28 @@ function ActionPanel({
 						🔄 Choose player to swap hands with:
 					</div>
 					<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-						{gameState.players
-							.filter((p) => p.userId !== session?.user_id)
-							.map((player) => (
-								<button
-									key={player.userId}
-									onClick={() => onChooseSwapTarget(player.userId)}
-									style={{
-										padding: "10px",
-										backgroundColor: "#007bff",
-										color: "white",
-										border: "none",
-										borderRadius: "6px",
-										cursor: "pointer",
-										fontWeight: "bold",
-									}}
-								>
-									{player.username} ({player.handSize} cards)
-								</button>
-							))}
+						{/* 🔄 7-0 Rule: Use availableSwapTargets from backend if available, otherwise filter players */}
+						{(gameState.availableSwapTargets &&
+						gameState.availableSwapTargets.length > 0
+							? gameState.availableSwapTargets
+							: gameState.players.filter((p) => p.userId !== session?.user_id)
+						).map((player) => (
+							<button
+								key={player.userId}
+								onClick={() => onChooseSwapTarget(player.userId)}
+								style={{
+									padding: "10px",
+									backgroundColor: "#007bff",
+									color: "white",
+									border: "none",
+									borderRadius: "6px",
+									cursor: "pointer",
+									fontWeight: "bold",
+								}}
+							>
+								{player.username} ({player.handSize} cards)
+							</button>
+						))}
 					</div>
 				</div>
 			)}
