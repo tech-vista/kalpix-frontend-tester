@@ -103,19 +103,19 @@ function ActionPanel({
 	};
 
 	return (
-		<div className="section">
-			<h2>🎮 Actions</h2>
+		<div className="section" style={{ padding: "15px" }}>
+			<h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>🎮 Actions</h2>
 
 			{/* Turn Status */}
 			<div
 				style={{
-					padding: "10px",
+					padding: "8px",
 					backgroundColor: isMyTurn ? "#d4edda" : "#f8d7da",
-					borderRadius: "6px",
-					marginBottom: "15px",
+					borderRadius: "5px",
+					marginBottom: "10px",
 					textAlign: "center",
 					fontWeight: "bold",
-					fontSize: "14px",
+					fontSize: "12px",
 				}}
 			>
 				{isMyTurn ? "✅ YOUR TURN" : "⏳ Waiting for other player..."}
@@ -125,18 +125,19 @@ function ActionPanel({
 			{showColorPicker && (
 				<div
 					style={{
-						marginBottom: "15px",
-						padding: "15px",
+						marginBottom: "10px",
+						padding: "10px",
 						backgroundColor: "#fff3cd",
-						borderRadius: "8px",
+						borderRadius: "6px",
 						border: "2px solid #ffc107",
 					}}
 				>
 					<div
 						style={{
-							marginBottom: "10px",
+							marginBottom: "8px",
 							fontWeight: "bold",
 							textAlign: "center",
+							fontSize: "12px",
 						}}
 					>
 						Choose a color:
@@ -145,19 +146,20 @@ function ActionPanel({
 						style={{
 							display: "grid",
 							gridTemplateColumns: "1fr 1fr",
-							gap: "10px",
+							gap: "6px",
 						}}
 					>
 						<button
 							onClick={() => handleColorChoice(0)}
 							style={{
-								padding: "12px",
+								padding: "8px",
 								backgroundColor: "#e74c3c",
 								color: "white",
 								border: "none",
-								borderRadius: "6px",
+								borderRadius: "5px",
 								cursor: "pointer",
 								fontWeight: "bold",
+								fontSize: "12px",
 							}}
 						>
 							🔴 Red
@@ -165,13 +167,14 @@ function ActionPanel({
 						<button
 							onClick={() => handleColorChoice(1)}
 							style={{
-								padding: "12px",
+								padding: "8px",
 								backgroundColor: "#3498db",
 								color: "white",
 								border: "none",
-								borderRadius: "6px",
+								borderRadius: "5px",
 								cursor: "pointer",
 								fontWeight: "bold",
+								fontSize: "12px",
 							}}
 						>
 							🔵 Blue
@@ -179,13 +182,14 @@ function ActionPanel({
 						<button
 							onClick={() => handleColorChoice(2)}
 							style={{
-								padding: "12px",
+								padding: "8px",
 								backgroundColor: "#2ecc71",
 								color: "white",
 								border: "none",
-								borderRadius: "6px",
+								borderRadius: "5px",
 								cursor: "pointer",
 								fontWeight: "bold",
+								fontSize: "12px",
 							}}
 						>
 							🟢 Green
@@ -193,13 +197,14 @@ function ActionPanel({
 						<button
 							onClick={() => handleColorChoice(3)}
 							style={{
-								padding: "12px",
+								padding: "8px",
 								backgroundColor: "#f39c12",
 								color: "white",
 								border: "none",
-								borderRadius: "6px",
+								borderRadius: "5px",
 								cursor: "pointer",
 								fontWeight: "bold",
+								fontSize: "12px",
 							}}
 						>
 							🟡 Yellow
@@ -208,14 +213,15 @@ function ActionPanel({
 					<button
 						onClick={() => setShowColorPicker(false)}
 						style={{
-							marginTop: "10px",
+							marginTop: "6px",
 							width: "100%",
-							padding: "8px",
+							padding: "6px",
 							backgroundColor: "#6c757d",
 							color: "white",
 							border: "none",
-							borderRadius: "6px",
+							borderRadius: "5px",
 							cursor: "pointer",
+							fontSize: "11px",
 						}}
 					>
 						Cancel
@@ -224,13 +230,13 @@ function ActionPanel({
 			)}
 
 			{/* Main Actions */}
-			<div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+			<div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
 				{/* Play Card */}
 				<button
 					className="btn-success"
 					onClick={handlePlayCard}
 					disabled={!canPlayCard}
-					style={{ width: "100%", padding: "12px", fontSize: "16px" }}
+					style={{ width: "100%", padding: "10px", fontSize: "13px" }}
 				>
 					🃏 Play Card
 					{selectedCard && ` (Selected)`}
@@ -242,7 +248,7 @@ function ActionPanel({
 					className="btn-primary"
 					onClick={onDrawCard}
 					disabled={!isMyTurn}
-					style={{ width: "100%", padding: "12px", fontSize: "16px" }}
+					style={{ width: "100%", padding: "10px", fontSize: "13px" }}
 				>
 					📥 Draw Card
 				</button>
@@ -252,7 +258,7 @@ function ActionPanel({
 					className="btn-warning"
 					onClick={onAutoPlay}
 					disabled={!isMyTurn}
-					style={{ width: "100%", padding: "12px", fontSize: "14px" }}
+					style={{ width: "100%", padding: "10px", fontSize: "12px" }}
 				>
 					⚡ Auto Play (Test)
 				</button>
@@ -260,12 +266,12 @@ function ActionPanel({
 
 			{/* Special Actions */}
 			{gameState.shieldWindowActive && (
-				<div style={{ marginTop: "15px" }}>
+				<div style={{ marginTop: "10px" }}>
 					<button
 						className="btn-secondary"
 						onClick={onPlayShield}
 						disabled={!isMyTurn}
-						style={{ width: "100%", padding: "12px", fontSize: "16px" }}
+						style={{ width: "100%", padding: "10px", fontSize: "13px" }}
 					>
 						🛡️ Play Shield
 					</button>
@@ -276,23 +282,24 @@ function ActionPanel({
 			{gameState.swapRequestActive && isMyTurn && (
 				<div
 					style={{
-						marginTop: "15px",
-						padding: "15px",
+						marginTop: "10px",
+						padding: "10px",
 						backgroundColor: "#fff3cd",
-						borderRadius: "8px",
+						borderRadius: "6px",
 						border: "2px solid #ffc107",
 					}}
 				>
 					<div
 						style={{
-							marginBottom: "10px",
+							marginBottom: "8px",
 							fontWeight: "bold",
 							textAlign: "center",
+							fontSize: "12px",
 						}}
 					>
 						🔄 Choose player to swap hands with:
 					</div>
-					<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+					<div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
 						{/* 🔄 7-0 Rule: Use availableSwapTargets from backend if available, otherwise filter players */}
 						{(gameState.availableSwapTargets &&
 						gameState.availableSwapTargets.length > 0
@@ -303,13 +310,14 @@ function ActionPanel({
 								key={player.userId}
 								onClick={() => onChooseSwapTarget(player.userId)}
 								style={{
-									padding: "10px",
+									padding: "8px",
 									backgroundColor: "#007bff",
 									color: "white",
 									border: "none",
-									borderRadius: "6px",
+									borderRadius: "5px",
 									cursor: "pointer",
 									fontWeight: "bold",
+									fontSize: "12px",
 								}}
 							>
 								{player.username} ({player.handSize} cards)
@@ -322,17 +330,17 @@ function ActionPanel({
 			{/* Action Hints */}
 			<div
 				style={{
-					marginTop: "15px",
-					padding: "10px",
+					marginTop: "10px",
+					padding: "8px",
 					backgroundColor: "#e9ecef",
-					borderRadius: "6px",
-					fontSize: "12px",
+					borderRadius: "5px",
+					fontSize: "10px",
 					color: "#495057",
 				}}
 			>
 				<strong>💡 Hints:</strong>
 				<ul
-					style={{ marginTop: "5px", marginBottom: "0", paddingLeft: "20px" }}
+					style={{ marginTop: "3px", marginBottom: "0", paddingLeft: "16px" }}
 				>
 					<li>Select a card from your hand first</li>
 					<li>Wild cards require color selection</li>

@@ -35,34 +35,36 @@ function PlayerHand({
 			(myUserId || session?.user_id);
 
 	return (
-		<div className="section">
-			<h2>🃏 Your Hand ({gameState.myHand.length} cards)</h2>
+		<div className="section" style={{ padding: "15px", marginTop: "10px" }}>
+			<h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>
+				🃏 Your Hand ({gameState.myHand.length} cards)
+			</h2>
 
 			{/* Playable Cards Info - Only show to current player */}
 			{isMyTurn && (
 				<div
 					style={{
-						padding: "10px",
+						padding: "8px",
 						backgroundColor: "#e9ecef",
-						borderRadius: "6px",
-						marginBottom: "15px",
-						fontSize: "14px",
+						borderRadius: "5px",
+						marginBottom: "10px",
+						fontSize: "11px",
 					}}
 				>
 					<strong>Playable Cards:</strong> {gameState.playableCards.length} /{" "}
 					{gameState.myHand.length}
 					{gameState.playableCards.length > 0 && (
-						<span style={{ color: "#28a745", marginLeft: "10px" }}>
+						<span style={{ color: "#28a745", marginLeft: "8px" }}>
 							✅ You can play!
 						</span>
 					)}
 					{gameState.playableCards.length === 0 && (
-						<span style={{ color: "#dc3545", marginLeft: "10px" }}>
+						<span style={{ color: "#dc3545", marginLeft: "8px" }}>
 							❌ No playable cards - draw a card
 						</span>
 					)}
 					{/* ✅ DEBUG: Show playable cards for debugging */}
-					<div style={{ fontSize: "12px", marginTop: "5px", color: "#666" }}>
+					<div style={{ fontSize: "10px", marginTop: "4px", color: "#666" }}>
 						<strong>DEBUG:</strong> Playable IDs: [
 						{gameState.playableCards.join(", ")}]
 						<br />
@@ -72,8 +74,17 @@ function PlayerHand({
 				</div>
 			)}
 
-			{/* Card List */}
-			<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+			{/* Card Grid */}
+			<div
+				style={{
+					display: "grid",
+					gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+					gap: "6px",
+					maxHeight: "250px",
+					overflowY: "auto",
+					padding: "5px",
+				}}
+			>
 				{gameState.myHand.map((card, idx) => {
 					// Handle both card objects and card IDs
 					const cardId = typeof card === "object" ? card.id : card;
@@ -119,7 +130,7 @@ function PlayerHand({
 							key={`${cardId}-${idx}`}
 							onClick={() => canSelect && onCardSelect(cardId)}
 							style={{
-								padding: "12px 15px",
+								padding: "6px 4px",
 								backgroundColor: isSelected
 									? "#007bff"
 									: isPlayable
@@ -137,31 +148,34 @@ function PlayerHand({
 								cursor: canSelect ? "pointer" : "not-allowed",
 								transition: "all 0.2s ease",
 								display: "flex",
-								justifyContent: "space-between",
+								flexDirection: "column",
 								alignItems: "center",
+								justifyContent: "center",
 								fontWeight: isPlayable ? "bold" : "normal",
 								textTransform: "uppercase",
-								fontSize: "14px",
+								fontSize: "9px",
+								minHeight: "55px",
+								textAlign: "center",
+								wordWrap: "break-word",
+								position: "relative",
 							}}
 							onMouseEnter={(e) => {
 								if (canSelect && !isSelected) {
-									e.currentTarget.style.transform = "translateX(5px)";
-									e.currentTarget.style.boxShadow =
-										"0 2px 8px rgba(0,0,0,0.15)";
+									e.currentTarget.style.transform = "translateY(-3px)";
+									e.currentTarget.style.boxShadow = "0 3px 8px rgba(0,0,0,0.2)";
 								}
 							}}
 							onMouseLeave={(e) => {
 								if (canSelect && !isSelected) {
-									e.currentTarget.style.transform = "translateX(0)";
+									e.currentTarget.style.transform = "translateY(0)";
 									e.currentTarget.style.boxShadow = "none";
 								}
 							}}
 						>
-							<span>{cardDisplay}</span>
-							<span>
-								{isSelected && "👈 SELECTED"}
+							<span style={{ marginBottom: "3px" }}>{cardDisplay}</span>
+							<span style={{ fontSize: "12px" }}>
+								{isSelected && "👈"}
 								{!isSelected && isPlayable && "✅"}
-								{!isPlayable && ""}
 							</span>
 						</div>
 					);
@@ -172,11 +186,11 @@ function PlayerHand({
 			{selectedCard !== null && (
 				<div
 					style={{
-						marginTop: "15px",
-						padding: "10px",
+						marginTop: "10px",
+						padding: "8px",
 						backgroundColor: "#d1ecf1",
-						borderRadius: "6px",
-						fontSize: "14px",
+						borderRadius: "5px",
+						fontSize: "11px",
 						textAlign: "center",
 					}}
 				>
@@ -188,13 +202,13 @@ function PlayerHand({
 			{gameState.myHand.length === 1 && (
 				<div
 					style={{
-						marginTop: "15px",
-						padding: "12px",
+						marginTop: "10px",
+						padding: "10px",
 						backgroundColor: "#fff3cd",
-						borderRadius: "6px",
+						borderRadius: "5px",
 						border: "2px solid #ffc107",
 						textAlign: "center",
-						fontSize: "16px",
+						fontSize: "13px",
 						fontWeight: "bold",
 						color: "#856404",
 					}}

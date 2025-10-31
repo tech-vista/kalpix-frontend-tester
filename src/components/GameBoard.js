@@ -36,31 +36,44 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 	return (
 		<div
 			className="section"
-			style={{ backgroundColor: "#f0f8ff", border: "2px solid #007bff" }}
+			style={{
+				backgroundColor: "#f0f8ff",
+				border: "2px solid #007bff",
+				padding: "15px",
+				marginBottom: "10px",
+			}}
 		>
-			<h2 style={{ color: "#0056b3", marginBottom: "15px" }}>🎮 Game Board</h2>
+			<h2
+				style={{
+					color: "#0056b3",
+					marginBottom: "10px",
+					fontSize: "1.2rem",
+				}}
+			>
+				🎮 Game Board
+			</h2>
 
 			{/* Top Discard Card */}
 			{gameState.topDiscardCard !== null &&
 				gameState.topDiscardCard !== undefined && (
-					<div style={{ marginBottom: "15px" }}>
+					<div style={{ marginBottom: "10px" }}>
 						<div
 							style={{
-								fontSize: "14px",
+								fontSize: "11px",
 								fontWeight: "bold",
-								marginBottom: "5px",
+								marginBottom: "3px",
 							}}
 						>
 							Top Card:
 						</div>
 						<div
 							style={{
-								padding: "15px",
+								padding: "10px",
 								backgroundColor: "#fff",
-								borderRadius: "8px",
-								border: "3px solid #007bff",
+								borderRadius: "6px",
+								border: "2px solid #007bff",
 								textAlign: "center",
-								fontSize: "24px",
+								fontSize: "18px",
 								fontWeight: "bold",
 								textTransform: "uppercase",
 							}}
@@ -74,24 +87,24 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 			{/* Current Color */}
 			{gameState.currentColor !== null &&
 				gameState.currentColor !== undefined && (
-					<div style={{ marginBottom: "15px" }}>
+					<div style={{ marginBottom: "10px" }}>
 						<div
 							style={{
-								fontSize: "14px",
+								fontSize: "11px",
 								fontWeight: "bold",
-								marginBottom: "5px",
+								marginBottom: "3px",
 							}}
 						>
 							Current Color:
 						</div>
 						<div
 							style={{
-								padding: "10px",
+								padding: "8px",
 								backgroundColor: getColorHex(gameState.currentColor),
 								color: "white",
-								borderRadius: "6px",
+								borderRadius: "5px",
 								textAlign: "center",
-								fontSize: "18px",
+								fontSize: "14px",
 								fontWeight: "bold",
 							}}
 						>
@@ -101,32 +114,32 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 				)}
 
 			{/* Current Player & Timer */}
-			<div style={{ marginBottom: "15px" }}>
+			<div style={{ marginBottom: "10px" }}>
 				<div
-					style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "5px" }}
+					style={{ fontSize: "11px", fontWeight: "bold", marginBottom: "3px" }}
 				>
 					Current Turn:
 				</div>
 				<div
 					style={{
-						padding: "12px",
+						padding: "8px",
 						backgroundColor: isMyTurn ? "#d4edda" : "#fff3cd",
-						borderRadius: "6px",
+						borderRadius: "5px",
 						border: "2px solid " + (isMyTurn ? "#28a745" : "#ffc107"),
 					}}
 				>
 					<div
 						style={{
-							fontSize: "16px",
+							fontSize: "13px",
 							fontWeight: "bold",
-							marginBottom: "5px",
+							marginBottom: "3px",
 						}}
 					>
 						{isMyTurn ? "👉 YOUR TURN" : `${currentPlayerName}'s turn`}
 					</div>
 					<div
 						style={{
-							fontSize: "20px",
+							fontSize: "16px",
 							fontFamily: "monospace",
 							color: timeInfo.isWarning
 								? "#dc3545"
@@ -146,16 +159,16 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 			{gameState.drawStack > 0 && (
 				<div
 					style={{
-						padding: "10px",
+						padding: "8px",
 						backgroundColor: "#f8d7da",
-						borderRadius: "6px",
+						borderRadius: "5px",
 						border: "2px solid #dc3545",
-						marginBottom: "15px",
+						marginBottom: "10px",
 						textAlign: "center",
 					}}
 				>
 					<div
-						style={{ fontSize: "18px", fontWeight: "bold", color: "#721c24" }}
+						style={{ fontSize: "14px", fontWeight: "bold", color: "#721c24" }}
 					>
 						⚠️ Draw Stack: +{gameState.drawStack}
 					</div>
@@ -163,17 +176,17 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 			)}
 
 			{/* Special Effects */}
-			<div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+			<div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
 				{gameState.redFuryActive && (
 					<div
 						style={{
 							flex: "1",
-							padding: "8px",
+							padding: "6px",
 							backgroundColor: "#ff6b6b",
 							color: "white",
-							borderRadius: "6px",
+							borderRadius: "5px",
 							textAlign: "center",
-							fontSize: "14px",
+							fontSize: "11px",
 							fontWeight: "bold",
 						}}
 					>
@@ -185,12 +198,12 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 					<div
 						style={{
 							flex: "1",
-							padding: "8px",
+							padding: "6px",
 							backgroundColor: "#4facfe",
 							color: "white",
-							borderRadius: "6px",
+							borderRadius: "5px",
 							textAlign: "center",
-							fontSize: "14px",
+							fontSize: "11px",
 							fontWeight: "bold",
 						}}
 					>
@@ -202,12 +215,12 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 					<div
 						style={{
 							flex: "1",
-							padding: "8px",
+							padding: "6px",
 							backgroundColor: "#f39c12",
 							color: "white",
-							borderRadius: "6px",
+							borderRadius: "5px",
 							textAlign: "center",
-							fontSize: "14px",
+							fontSize: "11px",
 							fontWeight: "bold",
 						}}
 					>
@@ -220,28 +233,28 @@ function GameBoard({ gameState, timerDisplay, session, myUserId }) {
 			{gameState.gameEnded && (
 				<div
 					style={{
-						marginTop: "15px",
-						padding: "15px",
+						marginTop: "10px",
+						padding: "10px",
 						backgroundColor: "#d4edda",
-						borderRadius: "8px",
+						borderRadius: "6px",
 						border: "2px solid #28a745",
 						textAlign: "center",
 					}}
 				>
 					<div
 						style={{
-							fontSize: "24px",
+							fontSize: "18px",
 							fontWeight: "bold",
-							marginBottom: "10px",
+							marginBottom: "6px",
 						}}
 					>
 						🏆 Game Over!
 					</div>
-					<div style={{ fontSize: "18px" }}>
+					<div style={{ fontSize: "14px" }}>
 						Winner: {gameState.winner || "Unknown"}
 					</div>
 					{gameState.scores && Object.keys(gameState.scores).length > 0 && (
-						<div style={{ marginTop: "10px", fontSize: "14px" }}>
+						<div style={{ marginTop: "6px", fontSize: "12px" }}>
 							<strong>Scores:</strong>
 							{Object.entries(gameState.scores).map(([userId, scoreData]) => {
 								const player = Array.isArray(gameState.players)

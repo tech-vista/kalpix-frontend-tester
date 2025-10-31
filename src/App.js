@@ -1207,8 +1207,6 @@ function App() {
 							selectedCard={selectedCard}
 							onCardSelect={handleCardSelect}
 						/>
-
-						<OpponentList gameState={gameState} session={session} />
 					</div>
 
 					{/* Right Column */}
@@ -1227,6 +1225,7 @@ function App() {
 
 						<EventLog events={events} onClear={handleClearEvents} />
 					</div>
+					<OpponentList gameState={gameState} session={session} />
 				</div>
 			)}
 
