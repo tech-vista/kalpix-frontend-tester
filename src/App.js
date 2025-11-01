@@ -88,6 +88,7 @@ function App() {
 	const [isMatchmaking, setIsMatchmaking] = useState(false);
 	const [matchmakerTicket, setMatchmakerTicket] = useState(null);
 	const [matchmakerStatus, setMatchmakerStatus] = useState("");
+	const [isAddingBot, setIsAddingBot] = useState(false); // 🔧 FIX: Prevent multiple bot additions
 
 	const [selectedCard, setSelectedCard] = useState(null);
 	const [timerDisplay, setTimerDisplay] = useState("--:--");
@@ -914,6 +915,13 @@ function App() {
 	}, [socket, matchmakerTicket, addEvent]);
 
 	const handleAddBot = useCallback(async () => {
+		// 🔧 FIX: Prevent multiple simultaneous bot additions
+		if (isAddingBot) {
+			console.log("Bot addition already in progress, ignoring...");
+			return;
+		}
+
+		setIsAddingBot(true);
 		try {
 			const response = await addBotToMatch(
 				client,
@@ -927,11 +935,24 @@ function App() {
 			);
 			showNotification("🤖 Bot added");
 		} catch (error) {
-			const errorMsg = error?.message || error?.toString() || "Unknown error";
-			addEvent("bot_error", `Failed to add bot: ${errorMsg}`, "error");
 			console.error("Add bot error:", error);
+			// 🔧 FIX: Better error message extraction
+			let errorMsg = "Unknown error";
+			if (error?.message) {
+				errorMsg = error.message;
+			} else if (typeof error === "string") {
+				errorMsg = error;
+			} else if (error) {
+				// Try to extract meaningful error info
+				errorMsg = JSON.stringify(error);
+			}
+			addEvent("bot_error", `Failed to add bot: ${errorMsg}`, "error");
+			showNotification(`❌ Failed to add bot: ${errorMsg}`);
+		} finally {
+			// Reset the flag after a short delay to allow the lobby_state event to arrive
+			setTimeout(() => setIsAddingBot(false), 1000);
 		}
-	}, [client, session, currentMatch, addEvent, showNotification]);
+	}, [client, session, currentMatch, addEvent, showNotification, isAddingBot]);
 
 	const handleStartGame = useCallback(async () => {
 		try {
@@ -1185,6 +1206,7 @@ function App() {
 							onStartMatchmaking={handleStartMatchmaking}
 							onCancelMatchmaking={handleCancelMatchmaking}
 							onAddBot={handleAddBot}
+							isAddingBot={isAddingBot}
 							onStartGame={handleStartGame}
 							onLeaveMatch={handleLeaveMatch}
 							session={session}

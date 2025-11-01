@@ -20,6 +20,7 @@ function MatchSection({
 	onStartMatchmaking,
 	onCancelMatchmaking,
 	onAddBot,
+	isAddingBot,
 	onStartGame,
 	onLeaveMatch,
 	session,
@@ -235,8 +236,12 @@ function MatchSection({
 					{/* Lobby Actions */}
 					<div className="button-group">
 						{isHost && !isLobbyFull && (
-							<button className="btn-secondary" onClick={onAddBot}>
-								🤖 Add Bot
+							<button
+								className="btn-secondary"
+								onClick={onAddBot}
+								disabled={isAddingBot}
+							>
+								{isAddingBot ? "⏳ Adding..." : "🤖 Add Bot"}
 							</button>
 						)}
 

@@ -116,7 +116,23 @@ export async function createOrJoinMatch(
  */
 export async function addBot(client, session, matchId) {
 	const response = await client.rpc(session, "add_bot_to_match", { matchId });
-	return response.payload ? JSON.parse(response.payload) : {};
+	// 🔧 FIX: Handle both string and object payloads
+	if (!response.payload) {
+		return {};
+	}
+
+	// If payload is already an object, return it directly
+	if (typeof response.payload === "object") {
+		return response.payload;
+	}
+
+	// If payload is a string, try to parse it as JSON
+	try {
+		return JSON.parse(response.payload);
+	} catch (error) {
+		console.error("Failed to parse bot response payload:", error);
+		return { success: true, message: "Bot added" };
+	}
 }
 
 /**
