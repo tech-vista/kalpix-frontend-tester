@@ -25,14 +25,23 @@ import {
 	parseMatchData,
 } from "./utils/nakamaClient";
 
-function App() {
+function App({
+	externalClient = null,
+	externalSession = null,
+	externalSocket = null,
+	externalIsConnected = false,
+}) {
 	// Nakama client state
-	const [client, setClient] = useState(null);
-	const [session, setSession] = useState(null);
-	const [socket, setSocket] = useState(null);
-	const [isConnected, setIsConnected] = useState(false);
+	// Use external props if provided, otherwise use internal state
+	const [client, setClient] = useState(externalClient);
+	const [session, setSession] = useState(externalSession);
+	const [socket, setSocket] = useState(externalSocket);
+	const [isConnected, setIsConnected] = useState(externalIsConnected);
 	const [currentMatch, setCurrentMatch] = useState(null);
 	const myUserIdRef = useRef(null); // ✅ Use ref to avoid closure issues
+
+	// Track if we're using external authentication
+	const usingExternalAuth = externalClient !== null && externalSession !== null;
 
 	// Game state
 	const [gameState, setGameState] = useState({
@@ -103,18 +112,37 @@ function App() {
 	const socketRef = useRef(null);
 	const matchIdRef = useRef(null); // ✅ Store match ID in ref for reliable access
 	const hasShownJoinedNotification = useRef(false); // ✅ Track if we've shown "Joined match" notification
+	const handleMatchDataRef = useRef(null); // ✅ Store handleMatchData in ref to avoid initialization order issues
 
-	// Initialize Nakama client
+	// Initialize Nakama client (only if not using external client)
 	useEffect(() => {
-		const nakamaClient = new Client("defaultkey", "127.0.0.1", "7350", false);
-		setClient(nakamaClient);
+		if (!externalClient) {
+			const nakamaClient = new Client("defaultkey", "127.0.0.1", "7350", false);
+			setClient(nakamaClient);
+		}
 
 		return () => {
 			if (timerRef.current) {
 				clearTimeout(timerRef.current);
 			}
 		};
-	}, []);
+	}, [externalClient]);
+
+	// Update state when external props change
+	useEffect(() => {
+		if (externalClient) setClient(externalClient);
+		if (externalSession) {
+			setSession(externalSession);
+			myUserIdRef.current = externalSession.user_id;
+			// ✅ FIX: Also update gameState.myUserId
+			setGameState((prev) => ({ ...prev, myUserId: externalSession.user_id }));
+		}
+		if (externalSocket) {
+			setSocket(externalSocket);
+			socketRef.current = externalSocket;
+		}
+		setIsConnected(externalIsConnected);
+	}, [externalClient, externalSession, externalSocket, externalIsConnected]);
 
 	// Add event to log
 	const addEvent = useCallback(
@@ -228,35 +256,40 @@ function App() {
 		}
 	}, [socket, addEvent]);
 
-	// Setup socket event handlers
-	const setupSocketHandlers = useCallback((sock) => {
-		// Match data handler
-		sock.onmatchdata = (matchData) => {
-			const parsed = parseMatchData(matchData);
-			if (!parsed) return;
+	// Setup socket event handlers (for standalone mode only)
+	const setupSocketHandlers = useCallback(
+		(sock) => {
+			console.log("🔧 Setting up socket event handlers (standalone mode)...");
 
-			handleMatchData(parsed);
-		};
+			// Match data handler
+			sock.onmatchdata = (matchData) => {
+				const parsed = parseMatchData(matchData);
+				if (!parsed) return;
 
-		// Matchmaker matched
-		sock.onmatchmakermatched = async (matched) => {
-			try {
-				const match = await sock.joinMatch(matched.match_id);
-				setCurrentMatch({ matchId: match.match_id, match });
-				matchIdRef.current = match.match_id; // ✅ Store in ref for reliable access
-				setIsMatchmaking(false);
-				setMatchmakerTicket(null);
-				// ✅ REMOVED: Don't add match_joined here - it's added when player_joined event is received
-				// addEvent("match_joined", `Joined match: ${match.match_id}`, "success");
-			} catch (error) {
-				addEvent(
-					"match_error",
-					`Failed to join match: ${error.message}`,
-					"error"
-				);
-			}
-		};
-	}, []);
+				// Note: handleMatchData is defined later, but this is only used in standalone mode
+				// For external socket mode, we use the inline handler below
+				const { event, data: eventData } = parsed;
+				console.log("📨 Received event (standalone):", event, eventData);
+			};
+
+			// Matchmaker matched
+			sock.onmatchmakermatched = async (matched) => {
+				try {
+					const match = await sock.joinMatch(matched.match_id);
+					setCurrentMatch({ matchId: match.match_id, match });
+					matchIdRef.current = match.match_id; // ✅ Store in ref for reliable access
+					setIsMatchmaking(false);
+					setMatchmakerTicket(null);
+				} catch (error) {
+					console.error("Failed to join match:", error);
+				}
+			};
+
+			console.log("✅ Socket event handlers configured (standalone mode)");
+		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[]
+	);
 
 	// Handle match data events
 	const handleMatchData = useCallback(
@@ -338,6 +371,11 @@ function App() {
 		[addEvent, showNotification]
 	);
 
+	// ✅ Update ref whenever handleMatchData changes
+	useEffect(() => {
+		handleMatchDataRef.current = handleMatchData;
+	}, [handleMatchData]);
+
 	// Event Handlers
 	const handleLobbyState = useCallback((data) => {
 		if (data.players) {
@@ -356,33 +394,44 @@ function App() {
 			addEvent("animation", "Card distribution animation started", "info");
 			showNotification("🎴 Dealing cards...");
 
-			// Simulate animation
-			console.log("⏳ Starting 2-second animation...");
-			await new Promise((resolve) => setTimeout(resolve, 2000));
+			const ANIMATION_DURATION = 2000; // 2 seconds
+
+			// ✅ STEP 1: Send animation_started with duration
+			if (socketRef.current && matchIdRef.current && data.eventId) {
+				try {
+					await sendGameAction(socketRef.current, matchIdRef.current, {
+						action: "animation_started",
+						eventId: data.eventId,
+						animationType: "card_distribution",
+						estimatedDuration: ANIMATION_DURATION,
+					});
+					console.log("📤 Sent animation_started to backend");
+				} catch (error) {
+					console.error("❌ Failed to send animation_started:", error);
+				}
+			}
+
+			// ✅ STEP 2: Play the actual animation
+			console.log(`⏳ Starting ${ANIMATION_DURATION}ms animation...`);
+			await new Promise((resolve) => setTimeout(resolve, ANIMATION_DURATION));
 			console.log("✅ Animation complete, sending to backend...");
 
-			// Send animation complete
-			// ✅ FIX: Use matchIdRef instead of currentMatch state (more reliable)
-			if (socketRef.current && matchIdRef.current) {
-				console.log("📤 Sending animation_complete", {
-					matchId: matchIdRef.current,
-					eventId: data.eventId,
-				});
-				await sendGameAction(socketRef.current, matchIdRef.current, {
-					action: "animation_complete",
-					eventId: data.eventId,
-				});
-				addEvent(
-					"animation_complete",
-					"Animation complete sent to backend",
-					"success"
-				);
-				console.log("✅ animation_complete sent successfully");
-			} else {
-				console.error("❌ Cannot send animation_complete:", {
-					hasSocket: !!socketRef.current,
-					hasMatchId: !!matchIdRef.current,
-				});
+			// ✅ STEP 3: Send animation_complete
+			if (socketRef.current && matchIdRef.current && data.eventId) {
+				try {
+					await sendGameAction(socketRef.current, matchIdRef.current, {
+						action: "animation_complete",
+						eventId: data.eventId,
+					});
+					addEvent(
+						"animation_complete",
+						"Animation complete sent to backend",
+						"success"
+					);
+					console.log("✅ animation_complete sent successfully");
+				} catch (error) {
+					console.error("❌ Failed to send animation_complete:", error);
+				}
 			}
 		},
 		[addEvent, showNotification]
@@ -993,7 +1042,12 @@ function App() {
 	const handlePlayCard = useCallback(
 		async (cardId, color = null) => {
 			try {
-				const action = { action: "play_card", cardId };
+				const action = {
+					action: "play_card",
+					cardId,
+					// ✅ HYBRID: Send estimated animation duration
+					estimatedDuration: 800, // 800ms for card play animation
+				};
 				if (color !== null) {
 					action.color = color;
 				}
@@ -1015,6 +1069,8 @@ function App() {
 		try {
 			await sendGameAction(socket, currentMatch.matchId, {
 				action: "draw_card",
+				// ✅ HYBRID: Send estimated animation duration
+				estimatedDuration: 600, // 600ms for card draw animation
 			});
 			addEvent("action_sent", "Drew card", "success");
 		} catch (error) {
@@ -1083,6 +1139,45 @@ function App() {
 		setEvents([]);
 	}, []);
 
+	// ✅ FIX: Set up socket event handlers for external socket
+	// This runs AFTER all handlers are defined to avoid initialization order issues
+	useEffect(() => {
+		if (socket && externalSocket) {
+			console.log("🔧 Setting up socket event handlers for external socket...");
+
+			// Match data handler - uses ref to call handleMatchData
+			socket.onmatchdata = (matchData) => {
+				console.log("📨 Received match data:", matchData);
+				const parsed = parseMatchData(matchData);
+				if (parsed) {
+					console.log("📨 Parsed match data:", parsed);
+					// Use ref to call handleMatchData (avoids initialization order issues)
+					if (handleMatchDataRef.current) {
+						handleMatchDataRef.current(parsed);
+					} else {
+						console.warn("⚠️ handleMatchDataRef.current is not set yet");
+					}
+				}
+			};
+
+			// Matchmaker matched
+			socket.onmatchmakermatched = async (matched) => {
+				try {
+					const match = await socket.joinMatch(matched.match_id);
+					setCurrentMatch({ matchId: match.match_id, match });
+					matchIdRef.current = match.match_id;
+					setIsMatchmaking(false);
+					setMatchmakerTicket(null);
+				} catch (error) {
+					console.error("Failed to join match:", error);
+				}
+			};
+
+			console.log("✅ Socket event handlers configured for external socket");
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [socket, externalSocket]);
+
 	return (
 		<div className="container">
 			<h1>🎮 UNO Nakama Backend Tester</h1>
@@ -1116,80 +1211,85 @@ function App() {
 				))}
 			</div>
 
-			{/* Main Tab Navigation */}
-			<div
-				style={{
-					display: "flex",
-					gap: "10px",
-					marginBottom: "20px",
-					justifyContent: "center",
-				}}
-			>
-				<button
-					onClick={() => setMainTab("game")}
+			{/* Main Tab Navigation - Only show in standalone mode */}
+			{!externalSession && (
+				<div
 					style={{
-						padding: "12px 24px",
-						backgroundColor: mainTab === "game" ? "#007bff" : "#6c757d",
-						color: "white",
-						border: "none",
-						borderRadius: "8px",
-						cursor: "pointer",
-						fontSize: "16px",
-						fontWeight: "bold",
-						minWidth: "150px",
+						display: "flex",
+						gap: "10px",
+						marginBottom: "20px",
+						justifyContent: "center",
 					}}
 				>
-					🎮 Game
-				</button>
-				<button
-					onClick={() => setMainTab("social")}
-					style={{
-						padding: "12px 24px",
-						backgroundColor: mainTab === "social" ? "#007bff" : "#6c757d",
-						color: "white",
-						border: "none",
-						borderRadius: "8px",
-						cursor: "pointer",
-						fontSize: "16px",
-						fontWeight: "bold",
-						minWidth: "150px",
-					}}
-				>
-					📱 Social
-				</button>
-				<button
-					onClick={() => setMainTab("chat")}
-					style={{
-						padding: "12px 24px",
-						backgroundColor: mainTab === "chat" ? "#007bff" : "#6c757d",
-						color: "white",
-						border: "none",
-						borderRadius: "8px",
-						cursor: "pointer",
-						fontSize: "16px",
-						fontWeight: "bold",
-						minWidth: "150px",
-					}}
-				>
-					💬 Chat
-				</button>
-			</div>
+					<button
+						onClick={() => setMainTab("game")}
+						style={{
+							padding: "12px 24px",
+							backgroundColor: mainTab === "game" ? "#007bff" : "#6c757d",
+							color: "white",
+							border: "none",
+							borderRadius: "8px",
+							cursor: "pointer",
+							fontSize: "16px",
+							fontWeight: "bold",
+							minWidth: "150px",
+						}}
+					>
+						🎮 Game
+					</button>
+					<button
+						onClick={() => setMainTab("social")}
+						style={{
+							padding: "12px 24px",
+							backgroundColor: mainTab === "social" ? "#007bff" : "#6c757d",
+							color: "white",
+							border: "none",
+							borderRadius: "8px",
+							cursor: "pointer",
+							fontSize: "16px",
+							fontWeight: "bold",
+							minWidth: "150px",
+						}}
+					>
+						📱 Social
+					</button>
+					<button
+						onClick={() => setMainTab("chat")}
+						style={{
+							padding: "12px 24px",
+							backgroundColor: mainTab === "chat" ? "#007bff" : "#6c757d",
+							color: "white",
+							border: "none",
+							borderRadius: "8px",
+							cursor: "pointer",
+							fontSize: "16px",
+							fontWeight: "bold",
+							minWidth: "150px",
+						}}
+					>
+						💬 Chat
+					</button>
+				</div>
+			)}
 
-			{/* Game Tab */}
-			{mainTab === "game" && (
+			{/* Game Tab - Always show when using external auth, otherwise show based on mainTab */}
+			{(externalSession || mainTab === "game") && (
 				<div className="grid">
 					{/* Left Column */}
 					<div>
-						<AuthSection
-							client={client}
-							session={session}
-							isConnected={isConnected}
-							authForm={authForm}
-							setAuthForm={setAuthForm}
-							onAuthenticate={handleAuthenticate}
-							onConnect={handleConnect}
-							onDisconnect={handleDisconnect}
-						/>
+						{/* Only show AuthSection if not using external authentication */}
+						{!externalSession && (
+							<AuthSection
+								client={client}
+								session={session}
+								isConnected={isConnected}
+								authForm={authForm}
+								setAuthForm={setAuthForm}
+								onAuthenticate={handleAuthenticate}
+								onConnect={handleConnect}
+								onDisconnect={handleDisconnect}
+							/>
+						)}
 
 						<MatchSection
 							isConnected={isConnected}
@@ -1251,22 +1351,24 @@ function App() {
 				</div>
 			)}
 
-			{/* Social Tab */}
-			{mainTab === "social" && (
+			{/* Social Tab - Only show in standalone mode */}
+			{!externalSession && mainTab === "social" && (
 				<div className="grid">
-					{/* Left Column - Auth */}
-					<div>
-						<AuthSection
-							client={client}
-							session={session}
-							isConnected={isConnected}
-							authForm={authForm}
-							setAuthForm={setAuthForm}
-							onAuthenticate={handleAuthenticate}
-							onConnect={handleConnect}
-							onDisconnect={handleDisconnect}
-						/>
-					</div>
+					{/* Left Column - Auth (only show if not using external authentication) */}
+					{!externalSession && (
+						<div>
+							<AuthSection
+								client={client}
+								session={session}
+								isConnected={isConnected}
+								authForm={authForm}
+								setAuthForm={setAuthForm}
+								onAuthenticate={handleAuthenticate}
+								onConnect={handleConnect}
+								onDisconnect={handleDisconnect}
+							/>
+						</div>
+					)}
 
 					{/* Center Column - Social */}
 					<div>
@@ -1284,22 +1386,24 @@ function App() {
 				</div>
 			)}
 
-			{/* Chat Tab */}
-			{mainTab === "chat" && (
+			{/* Chat Tab - Only show in standalone mode */}
+			{!externalSession && mainTab === "chat" && (
 				<div className="grid">
-					{/* Left Column - Auth */}
-					<div>
-						<AuthSection
-							client={client}
-							session={session}
-							isConnected={isConnected}
-							authForm={authForm}
-							setAuthForm={setAuthForm}
-							onAuthenticate={handleAuthenticate}
-							onConnect={handleConnect}
-							onDisconnect={handleDisconnect}
-						/>
-					</div>
+					{/* Left Column - Auth (only show if not using external authentication) */}
+					{!externalSession && (
+						<div>
+							<AuthSection
+								client={client}
+								session={session}
+								isConnected={isConnected}
+								authForm={authForm}
+								setAuthForm={setAuthForm}
+								onAuthenticate={handleAuthenticate}
+								onConnect={handleConnect}
+								onDisconnect={handleDisconnect}
+							/>
+						</div>
+					)}
 
 					{/* Center Column - Chat */}
 					<div>

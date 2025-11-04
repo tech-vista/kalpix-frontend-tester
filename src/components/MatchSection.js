@@ -35,6 +35,21 @@ function MatchSection({
 	const currentPlayers = gameState.players.length;
 	const isLobbyFull = currentPlayers === expectedPlayers;
 
+	// 🔍 DEBUG: Log bot button visibility conditions
+	console.log("🤖 Bot Button Visibility:", {
+		isInMatch,
+		isGameStarted: gameState.isGameStarted,
+		isHost,
+		isLobbyFull,
+		currentPlayers,
+		expectedPlayers,
+		players: gameState.players,
+		sessionUserId: session?.user_id,
+		firstPlayerUserId: gameState.players[0]?.userId,
+		shouldShowBotButton:
+			isInMatch && !gameState.isGameStarted && isHost && !isLobbyFull,
+	});
+
 	return (
 		<div className="section">
 			<h2>🎮 Match Management</h2>

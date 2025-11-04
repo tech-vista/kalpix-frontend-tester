@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test</title>
+    <script src="https://unpkg.com/@heroiclabs/nakama-js@2.6.0/dist/nakama-js.umd.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nakama Authentication Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Guest Login</h2>
+        <button onclick="testGuestLogin()">Test Guest Login</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Email Registration</h2>
+        <input type="text" id="reg-username" placeholder="Username" value="testuser123">
+        <input type="email" id="reg-email" placeholder="Email" value="test@example.com">
+        <input type="password" id="reg-password" placeholder="Password" value="Test123456">
+        <button onclick="testRegister()">Register</button>
+        <br><br>
+        <input type="text" id="reg-otp" placeholder="OTP" value="123456">
+        <button onclick="testVerifyRegistration()">Verify OTP</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Email Login</h2>
+        <input type="email" id="login-email" placeholder="Email" value="test@example.com">
+        <input type="password" id="login-password" placeholder="Password" value="Test123456">
+        <button onclick="testLogin()">Send OTP</button>
+        <br><br>
+        <input type="text" id="login-otp" placeholder="OTP" value="123456">
+        <button onclick="testVerifyLogin()">Verify OTP</button>
+    </div>
+    
+    <div id="output"></div>
+
+    <script>
+        const client = new nakamajs.Client("defaultkey", "127.0.0.1", "7350", false);
+        let currentSession = null;
+        
+        function log(message, isError = false) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            console.log(message);
+        }
+        
+        async function testGuestLogin() {
+            try {
+                log('Testing guest login...');
+                const deviceId = 'test_device_' + Date.now();
+                
+                // For unauthenticated RPC calls, use rpcHttpKey instead of rpc
+                const response = await client.rpcHttpKey("defaulthttpkey", "auth/device_login", {
+                    device_id: deviceId,
+                    username: ""
+                });
+                
+                log('Raw response: ' + JSON.stringify(response, null, 2));
+                
+                const data = JSON.parse(response.payload);
+                log('Parsed data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Guest login successful!');
+                    log('Username: ' + data.data.username);
+                    log('User ID: ' + data.data.userId);
+                } else {
+                    log('❌ Guest login failed: ' + JSON.stringify(data.error), true);
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message, true);
+                console.error(error);
+            }
+        }
+        
+        async function testRegister() {
+            try {
+                log('Testing email registration...');
+                const username = document.getElementById('reg-username').value;
+                const email = document.getElementById('reg-email').value;
+                const password = document.getElementById('reg-password').value;
+                
+                const response = await client.rpcHttpKey("defaulthttpkey", "auth/register_email", {
+                    username,
+                    email,
+                    password
+                });
+                
+                log('Raw response: ' + JSON.stringify(response, null, 2));
+                
+                const data = JSON.parse(response.payload);
+                log('Parsed data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Registration initiated! Check console for OTP.');
+                    log('Message: ' + data.data.message);
+                } else {
+                    log('❌ Registration failed: ' + JSON.stringify(data.error), true);
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message, true);
+                console.error(error);
+            }
+        }
+        
+        async function testVerifyRegistration() {
+            try {
+                log('Testing registration OTP verification...');
+                const email = document.getElementById('reg-email').value;
+                const otp = document.getElementById('reg-otp').value;
+                
+                const response = await client.rpcHttpKey("defaulthttpkey", "auth/verify_registration_otp", {
+                    email,
+                    otp
+                });
+                
+                log('Raw response: ' + JSON.stringify(response, null, 2));
+                
+                const data = JSON.parse(response.payload);
+                log('Parsed data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Registration verified!');
+                    log('Username: ' + data.data.username);
+                    log('Session token: ' + data.data.sessionToken);
+                    currentSession = data.data;
+                } else {
+                    log('❌ Verification failed: ' + JSON.stringify(data.error), true);
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message, true);
+                console.error(error);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                log('Testing email login...');
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                const response = await client.rpcHttpKey("defaulthttpkey", "auth/send_otp", {
+                    email,
+                    password
+                });
+                
+                log('Raw response: ' + JSON.stringify(response, null, 2));
+                
+                const data = JSON.parse(response.payload);
+                log('Parsed data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ OTP sent! Check console for OTP.');
+                    log('Message: ' + data.data.message);
+                } else {
+                    log('❌ Login failed: ' + JSON.stringify(data.error), true);
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message, true);
+                console.error(error);
+            }
+        }
+        
+        async function testVerifyLogin() {
+            try {
+                log('Testing login OTP verification...');
+                const email = document.getElementById('login-email').value;
+                const otp = document.getElementById('login-otp').value;
+                
+                const response = await client.rpcHttpKey("defaulthttpkey", "auth/verify_otp", {
+                    email,
+                    otp
+                });
+                
+                log('Raw response: ' + JSON.stringify(response, null, 2));
+                
+                const data = JSON.parse(response.payload);
+                log('Parsed data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Login successful!');
+                    log('Username: ' + data.data.username);
+                    log('Session token: ' + data.data.sessionToken);
+                    currentSession = data.data;
+                } else {
+                    log('❌ Login failed: ' + JSON.stringify(data.error), true);
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message, true);
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
+
