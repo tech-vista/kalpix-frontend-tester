@@ -163,6 +163,7 @@ function MainApp() {
 								<HomePage
 									client={client}
 									session={session}
+									setSession={setSession}
 									socket={socket}
 									isConnected={isConnected}
 								/>

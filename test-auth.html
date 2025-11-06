@@ -59,13 +59,10 @@
     </div>
     
     <div class="test-section">
-        <h2>3. Email Login</h2>
+        <h2>3. Email Login (Direct - No OTP)</h2>
         <input type="email" id="login-email" placeholder="Email" value="test@example.com">
         <input type="password" id="login-password" placeholder="Password" value="Test123456">
-        <button onclick="testLogin()">Send OTP</button>
-        <br><br>
-        <input type="text" id="login-otp" placeholder="OTP" value="123456">
-        <button onclick="testVerifyLogin()">Verify OTP</button>
+        <button onclick="testLogin()">Login</button>
     </div>
     
     <div id="output"></div>
@@ -173,48 +170,20 @@
         
         async function testLogin() {
             try {
-                log('Testing email login...');
+                log('Testing email login (direct - no OTP)...');
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
-                
-                const response = await client.rpcHttpKey("defaulthttpkey", "auth/send_otp", {
+
+                const response = await client.rpcHttpKey("defaulthttpkey", "auth/login_email", {
                     email,
                     password
                 });
-                
+
                 log('Raw response: ' + JSON.stringify(response, null, 2));
-                
+
                 const data = JSON.parse(response.payload);
                 log('Parsed data: ' + JSON.stringify(data, null, 2));
-                
-                if (data.success) {
-                    log('✅ OTP sent! Check console for OTP.');
-                    log('Message: ' + data.data.message);
-                } else {
-                    log('❌ Login failed: ' + JSON.stringify(data.error), true);
-                }
-            } catch (error) {
-                log('❌ Error: ' + error.message, true);
-                console.error(error);
-            }
-        }
-        
-        async function testVerifyLogin() {
-            try {
-                log('Testing login OTP verification...');
-                const email = document.getElementById('login-email').value;
-                const otp = document.getElementById('login-otp').value;
-                
-                const response = await client.rpcHttpKey("defaulthttpkey", "auth/verify_otp", {
-                    email,
-                    otp
-                });
-                
-                log('Raw response: ' + JSON.stringify(response, null, 2));
-                
-                const data = JSON.parse(response.payload);
-                log('Parsed data: ' + JSON.stringify(data, null, 2));
-                
+
                 if (data.success) {
                     log('✅ Login successful!');
                     log('Username: ' + data.data.username);

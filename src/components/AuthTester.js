@@ -4,9 +4,10 @@ import GoogleLoginButton from "./GoogleLoginButton";
 import {
 	registerEmail,
 	verifyRegistrationOTP,
+	skipVerification,
+	resendOTP,
 	checkUsernameAvailable,
 	loginWithEmail,
-	verifyLoginOTP,
 	loginWithGoogle,
 	loginAsGuest,
 	linkEmail,
@@ -38,14 +39,14 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 	});
 	const [registrationStep, setRegistrationStep] = useState("form"); // 'form' | 'otp'
 	const [usernameAvailable, setUsernameAvailable] = useState(null);
+	const [remainingAttempts, setRemainingAttempts] = useState(null);
+	const [resendCooldown, setResendCooldown] = useState(0);
 
 	// Email login state
 	const [loginForm, setLoginForm] = useState({
 		email: "",
 		password: "",
-		otp: "",
 	});
-	const [loginStep, setLoginStep] = useState("form"); // 'form' | 'otp'
 
 	// Google login state
 	const [googleForm, setGoogleForm] = useState({
@@ -76,6 +77,38 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 	const showStatus = (type, message) => {
 		setStatus({ type, message });
 		setTimeout(() => setStatus({ type: "", message: "" }), 5000);
+	};
+
+	// Helper to extract remaining attempts from error message
+	const extractRemainingAttempts = (errorMessage) => {
+		const match = errorMessage.match(/(\d+) attempt\(s\) remaining/);
+		if (match) {
+			return parseInt(match[1], 10);
+		}
+		return null;
+	};
+
+	// Helper to extract rate limit cooldown from error message
+	const extractRateLimitCooldown = (errorMessage) => {
+		const match = errorMessage.match(/Try again after (\d+) seconds/);
+		if (match) {
+			return parseInt(match[1], 10);
+		}
+		return null;
+	};
+
+	// Start cooldown timer
+	const startCooldownTimer = (seconds) => {
+		setResendCooldown(seconds);
+		const interval = setInterval(() => {
+			setResendCooldown((prev) => {
+				if (prev <= 1) {
+					clearInterval(interval);
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1000);
 	};
 
 	// ========================================
@@ -136,10 +169,37 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 				registerForm.password
 			);
 			setRegistrationStep("otp");
+			setRemainingAttempts(null);
+			setResendCooldown(0);
 			showStatus("success", result.message);
 		} catch (error) {
 			console.error("Register email error:", error);
-			showStatus("error", error.message || "Failed to register");
+			const errorMessage = error.message || "Failed to register";
+
+			// Provide user-friendly error messages with actionable suggestions
+			if (
+				errorMessage.includes("already registered") ||
+				errorMessage.includes("Email already exists")
+			) {
+				showStatus(
+					"error",
+					"This email is already registered. Please log in instead or use a different email."
+				);
+			} else if (errorMessage.includes("Username already exists")) {
+				showStatus(
+					"error",
+					"This username is already taken. Please choose a different username."
+				);
+			} else if (errorMessage.includes("Registration already in progress")) {
+				showStatus(
+					"error",
+					"Registration already in progress. Please verify your email or resend OTP."
+				);
+				// Automatically move to OTP step if registration is pending
+				setRegistrationStep("otp");
+			} else {
+				showStatus("error", errorMessage);
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -159,11 +219,90 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 			);
 			setSession(result.session);
 			setRegistrationStep("form");
+			setRemainingAttempts(null);
 			showStatus("success", `Account created! Welcome ${result.data.username}`);
 			if (onAuthSuccess) onAuthSuccess(result.session);
 		} catch (error) {
 			console.error("Verify registration error:", error);
-			showStatus("error", error.message || "Failed to verify OTP");
+			const errorMessage = error.message || "Failed to verify OTP";
+
+			// Extract remaining attempts from error message
+			const attempts = extractRemainingAttempts(errorMessage);
+			if (attempts !== null) {
+				setRemainingAttempts(attempts);
+			}
+
+			// Provide user-friendly error messages
+			if (errorMessage.includes("Maximum OTP attempts exceeded")) {
+				showStatus(
+					"error",
+					"Too many incorrect attempts. Please request a new OTP by clicking 'Resend OTP'."
+				);
+				setRemainingAttempts(0);
+			} else if (errorMessage.includes("OTP has expired")) {
+				showStatus(
+					"error",
+					"This OTP has expired. Please click 'Resend OTP' to get a new code."
+				);
+			} else if (errorMessage.includes("No verification pending")) {
+				showStatus(
+					"error",
+					"No verification pending for this email. Please register again."
+				);
+				setRegistrationStep("form");
+			} else {
+				showStatus("error", errorMessage);
+			}
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleSkipVerification = async () => {
+		if (!client) {
+			showStatus("error", "Client not initialized. Please refresh the page.");
+			return;
+		}
+		setLoading(true);
+		try {
+			const result = await skipVerification(client, registerForm.email);
+			setSession(result.session);
+			setRegistrationStep("form");
+			setRemainingAttempts(null);
+			showStatus(
+				"success",
+				`Welcome ${result.data.username}! You can verify your email later.`
+			);
+			if (onAuthSuccess) onAuthSuccess(result.session);
+		} catch (error) {
+			console.error("Skip verification error:", error);
+			showStatus("error", error.message || "Failed to skip verification");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleResendOTP = async () => {
+		if (!client) {
+			showStatus("error", "Client not initialized. Please refresh the page.");
+			return;
+		}
+		setLoading(true);
+		try {
+			const result = await resendOTP(client, registerForm.email);
+			setRemainingAttempts(null); // Reset attempts on new OTP
+			showStatus("success", result.message || "OTP sent successfully!");
+		} catch (error) {
+			console.error("Resend OTP error:", error);
+			const errorMessage = error.message || "Failed to resend OTP";
+
+			// Extract rate limit cooldown from error message
+			const cooldown = extractRateLimitCooldown(errorMessage);
+			if (cooldown !== null) {
+				startCooldownTimer(cooldown);
+			}
+
+			showStatus("error", errorMessage);
 		} finally {
 			setLoading(false);
 		}
@@ -177,6 +316,13 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 			showStatus("error", "Client not initialized. Please refresh the page.");
 			return;
 		}
+
+		// Validate inputs
+		if (!loginForm.email || !loginForm.password) {
+			showStatus("error", "Please enter both email and password");
+			return;
+		}
+
 		setLoading(true);
 		try {
 			const result = await loginWithEmail(
@@ -184,35 +330,25 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 				loginForm.email,
 				loginForm.password
 			);
-			setLoginStep("otp");
-			showStatus("success", result.message);
-		} catch (error) {
-			console.error("Login email error:", error);
-			showStatus("error", error.message || "Failed to send OTP");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const handleVerifyLogin = async () => {
-		if (!client) {
-			showStatus("error", "Client not initialized. Please refresh the page.");
-			return;
-		}
-		setLoading(true);
-		try {
-			const result = await verifyLoginOTP(
-				client,
-				loginForm.email,
-				loginForm.otp
-			);
 			setSession(result.session);
-			setLoginStep("form");
 			showStatus("success", `Welcome back ${result.data.username}!`);
 			if (onAuthSuccess) onAuthSuccess(result.session);
 		} catch (error) {
-			console.error("Verify login error:", error);
-			showStatus("error", error.message || "Failed to verify OTP");
+			console.error("Login email error:", error);
+
+			// Check if it's an authentication error (email not registered)
+			if (
+				error.message &&
+				(error.message.includes("Email not registered") ||
+					error.message.includes("incorrect password"))
+			) {
+				showStatus(
+					"error",
+					"Email not registered or incorrect password. Please check your credentials or register a new account."
+				);
+			} else {
+				showStatus("error", error.message || "Failed to login");
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -683,6 +819,10 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 						) : (
 							<div>
 								<p>✅ OTP sent to {registerForm.email}</p>
+								<p style={{ fontSize: "14px", color: "#666" }}>
+									Check your email for the 6-digit verification code.
+								</p>
+
 								<div className="form-group">
 									<label>Enter OTP:</label>
 									<input
@@ -694,20 +834,84 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 										placeholder="123456"
 										maxLength="6"
 									/>
+									{remainingAttempts !== null && (
+										<small
+											style={{
+												color: "#ff9800",
+												marginTop: "5px",
+												display: "block",
+											}}
+										>
+											⚠️ {remainingAttempts} attempt(s) remaining
+										</small>
+									)}
 								</div>
-								<button
-									onClick={handleVerifyRegistration}
-									disabled={loading}
-									className="btn-success"
+
+								<div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+									<button
+										onClick={handleVerifyRegistration}
+										disabled={loading}
+										className="btn-success"
+									>
+										✅ Verify & Register
+									</button>
+									<button
+										onClick={handleSkipVerification}
+										disabled={loading}
+										className="btn-secondary"
+										style={{ backgroundColor: "#6c757d" }}
+									>
+										⏭️ Verify Later
+									</button>
+								</div>
+
+								<div
+									style={{
+										marginTop: "15px",
+										display: "flex",
+										gap: "10px",
+										flexWrap: "wrap",
+									}}
 								>
-									✅ Verify & Register
-								</button>
-								<button
-									onClick={() => setRegistrationStep("form")}
-									className="btn-secondary"
+									<button
+										onClick={handleResendOTP}
+										disabled={loading || resendCooldown > 0}
+										className="btn-secondary"
+									>
+										{resendCooldown > 0
+											? `🔄 Resend in ${resendCooldown}s`
+											: "🔄 Resend OTP"}
+									</button>
+									<button
+										onClick={() => {
+											setRegistrationStep("form");
+											setRemainingAttempts(null);
+											setResendCooldown(0);
+										}}
+										className="btn-secondary"
+									>
+										← Back
+									</button>
+								</div>
+
+								<div
+									style={{
+										marginTop: "20px",
+										padding: "15px",
+										background: "#f8f9fa",
+										borderRadius: "6px",
+										fontSize: "14px",
+									}}
 								>
-									← Back
-								</button>
+									<strong>ℹ️ Didn't receive the code?</strong>
+									<ul style={{ marginTop: "10px", paddingLeft: "20px" }}>
+										<li>Check your spam/junk folder</li>
+										<li>Wait a few moments and click "Resend OTP"</li>
+										<li>
+											Or click "Verify Later" to continue without verification
+										</li>
+									</ul>
+								</div>
 							</div>
 						)}
 					</div>
@@ -717,68 +921,43 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 				{activeTab === "login" && (
 					<div className="card">
 						<h3>🔑 Login with Email</h3>
-						{loginStep === "form" ? (
-							<div>
-								<div className="form-group">
-									<label>Email:</label>
-									<input
-										type="email"
-										value={loginForm.email}
-										onChange={(e) =>
-											setLoginForm({ ...loginForm, email: e.target.value })
-										}
-										placeholder="your@email.com"
-									/>
-								</div>
-								<div className="form-group">
-									<label>Password:</label>
-									<input
-										type="password"
-										value={loginForm.password}
-										onChange={(e) =>
-											setLoginForm({ ...loginForm, password: e.target.value })
-										}
-										placeholder="Your password"
-									/>
-								</div>
-								<button
-									onClick={handleLoginEmail}
-									disabled={loading}
-									className="btn-primary"
-								>
-									📧 Send OTP
-								</button>
+						<p className="info-text">
+							🔒 Enter your email and password to login
+						</p>
+						<div>
+							<div className="form-group">
+								<label>Email:</label>
+								<input
+									type="email"
+									value={loginForm.email}
+									onChange={(e) =>
+										setLoginForm({ ...loginForm, email: e.target.value })
+									}
+									placeholder="your@email.com"
+								/>
 							</div>
-						) : (
-							<div>
-								<p>✅ OTP sent to {loginForm.email}</p>
-								<div className="form-group">
-									<label>Enter OTP:</label>
-									<input
-										type="text"
-										value={loginForm.otp}
-										onChange={(e) =>
-											setLoginForm({ ...loginForm, otp: e.target.value })
-										}
-										placeholder="123456"
-										maxLength="6"
-									/>
-								</div>
-								<button
-									onClick={handleVerifyLogin}
-									disabled={loading}
-									className="btn-primary"
-								>
-									✅ Verify & Login
-								</button>
-								<button
-									onClick={() => setLoginStep("form")}
-									className="btn-secondary"
-								>
-									← Back
-								</button>
+							<div className="form-group">
+								<label>Password:</label>
+								<input
+									type="password"
+									value={loginForm.password}
+									onChange={(e) =>
+										setLoginForm({ ...loginForm, password: e.target.value })
+									}
+									placeholder="Your password"
+								/>
 							</div>
-						)}
+							<button
+								onClick={handleLoginEmail}
+								disabled={loading}
+								className="btn-primary"
+							>
+								{loading ? "Logging in..." : "🔑 Login"}
+							</button>
+							<p className="help-text">
+								Login directly with your email and password
+							</p>
+						</div>
 					</div>
 				)}
 

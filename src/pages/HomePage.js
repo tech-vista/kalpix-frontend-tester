@@ -1,13 +1,23 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import AccountSecurityBanner from "../components/AccountSecurityBanner";
 import "./HomePage.css";
 
 /**
  * Home Page Component
  * Displays list of available games and quick access features
  */
-function HomePage({ client, session, socket, isConnected }) {
+function HomePage({ client, session, setSession, socket, isConnected }) {
 	const navigate = useNavigate();
+
+	// Handle session update from banner
+	const handleSessionUpdate = (newSession) => {
+		if (setSession) {
+			setSession(newSession);
+			// Save to localStorage
+			localStorage.setItem("nakama_session", JSON.stringify(newSession));
+		}
+	};
 
 	// Available games
 	const games = [
@@ -69,8 +79,19 @@ function HomePage({ client, session, socket, isConnected }) {
 					<p>Ready to play some games?</p>
 				</div>
 
+				{/* Account Security Banner */}
+				<AccountSecurityBanner
+					client={client}
+					session={session}
+					onSessionUpdate={handleSessionUpdate}
+				/>
+
 				{/* Connection Status */}
-				<div className={`connection-status ${isConnected ? "connected" : "disconnected"}`}>
+				<div
+					className={`connection-status ${
+						isConnected ? "connected" : "disconnected"
+					}`}
+				>
 					<span className="status-dot"></span>
 					<span className="status-text">
 						{isConnected ? "Connected to server" : "Connecting..."}
@@ -178,4 +199,3 @@ function HomePage({ client, session, socket, isConnected }) {
 }
 
 export default HomePage;
-

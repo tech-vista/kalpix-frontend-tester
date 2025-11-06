@@ -258,6 +258,83 @@ export async function verifyRegistrationOTP(client, email, otp) {
 	}
 }
 
+/**
+ * Skip verification and create unverified account (deferred verification)
+ * @param {object} client - Nakama client
+ * @param {string} email - Email
+ * @returns {object} Session and user data
+ */
+export async function skipVerification(client, email) {
+	try {
+		if (!client) {
+			throw new Error("Nakama client is not initialized");
+		}
+		if (!email) {
+			throw new Error("Email is required");
+		}
+
+		const response = await callUnauthenticatedRpc(
+			client,
+			"auth/skip_verification",
+			{
+				email,
+			}
+		);
+		const data = parseRpcResponse(response);
+
+		// The backend returns session data directly
+		const sessionData = data.data || data;
+
+		// Create a session object from the response
+		const session = {
+			token:
+				sessionData.sessionToken ||
+				sessionData.token ||
+				sessionData.session_token,
+			refresh_token: "",
+			user_id: sessionData.userId || sessionData.user_id,
+			username: sessionData.username,
+			created_at: Date.now(),
+			expires_at:
+				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000,
+		};
+
+		return {
+			session,
+			data: sessionData,
+		};
+	} catch (error) {
+		console.error("Skip verification failed:", error);
+		throw new Error(error.message || "Failed to skip verification");
+	}
+}
+
+/**
+ * Resend OTP for registration
+ * @param {object} client - Nakama client
+ * @param {string} email - Email
+ * @returns {object} Result
+ */
+export async function resendOTP(client, email) {
+	try {
+		if (!client) {
+			throw new Error("Nakama client is not initialized");
+		}
+		if (!email) {
+			throw new Error("Email is required");
+		}
+
+		const response = await callUnauthenticatedRpc(client, "auth/resend_otp", {
+			email,
+		});
+		const data = parseRpcResponse(response);
+		return data.data || data;
+	} catch (error) {
+		console.error("Resend OTP failed:", error);
+		throw new Error(error.message || "Failed to resend OTP");
+	}
+}
+
 // ========================================
 // EMAIL LOGIN
 // ========================================
@@ -278,6 +355,57 @@ export async function loginWithEmail(client, email, password) {
 			throw new Error("Email and password are required");
 		}
 
+		// Direct login with email and password (no OTP required)
+		const response = await callUnauthenticatedRpc(client, "auth/login_email", {
+			email,
+			password,
+		});
+		const data = parseRpcResponse(response);
+
+		// The backend returns session data directly
+		const sessionData = data.data || data;
+
+		// Create a session object from the response
+		// Backend SessionInfo has: userId, username, sessionToken, expiresAt
+		const session = {
+			token:
+				sessionData.sessionToken ||
+				sessionData.token ||
+				sessionData.session_token,
+			refresh_token: "", // Backend doesn't provide refresh tokens
+			user_id: sessionData.userId || sessionData.user_id,
+			username: sessionData.username,
+			created_at: Date.now(),
+			expires_at:
+				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000, // 1 hour default
+		};
+
+		return {
+			session,
+			data: sessionData,
+		};
+	} catch (error) {
+		console.error("Login with email failed:", error);
+		throw new Error(error.message || "Failed to login with email");
+	}
+}
+
+/**
+ * Send OTP for email verification (legacy - for OTP-based flows if needed)
+ * @param {object} client - Nakama client
+ * @param {string} email - Email
+ * @param {string} password - Password
+ * @returns {object} Response data
+ */
+export async function sendLoginOTP(client, email, password) {
+	try {
+		if (!client) {
+			throw new Error("Nakama client is not initialized");
+		}
+		if (!email || !password) {
+			throw new Error("Email and password are required");
+		}
+
 		const response = await callUnauthenticatedRpc(client, "auth/send_otp", {
 			email,
 			password,
@@ -285,13 +413,13 @@ export async function loginWithEmail(client, email, password) {
 		const data = parseRpcResponse(response);
 		return data.data || data;
 	} catch (error) {
-		console.error("Login with email failed:", error);
+		console.error("Send OTP failed:", error);
 		throw new Error(error.message || "Failed to send OTP");
 	}
 }
 
 /**
- * Verify login OTP
+ * Verify login OTP (legacy - for OTP-based flows if needed)
  * @param {object} client - Nakama client
  * @param {string} email - Email
  * @param {string} otp - OTP code
