@@ -480,6 +480,8 @@ export async function verifyLoginOTP(client, email, otp) {
  */
 export async function loginWithGoogle(client, idToken) {
 	// Use our custom RPC that generates themed usernames
+	// Note: This endpoint now uses Firebase Authentication for Google login
+	// The idToken should be a Firebase ID token (from Google Sign-In via Firebase)
 	const response = await callUnauthenticatedRpc(client, "auth/google_login", {
 		id_token: idToken,
 	});

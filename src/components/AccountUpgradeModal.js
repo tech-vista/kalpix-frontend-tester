@@ -109,7 +109,9 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 					"This email is already registered. Please use a different email."
 				);
 			} else if (errorMessage.includes("Username already exists")) {
-				setError("This username is already taken. Please choose a different one.");
+				setError(
+					"This username is already taken. Please choose a different one."
+				);
 				setUsernameAvailable(false);
 			} else if (errorMessage.includes("Registration already in progress")) {
 				setError("Registration already in progress. Moving to verification...");
@@ -250,7 +252,10 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 	if (!method) {
 		return (
 			<div className="modal-overlay" onClick={onClose}>
-				<div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
+				<div
+					className="modal-content upgrade-modal"
+					onClick={(e) => e.stopPropagation()}
+				>
 					<div className="modal-header">
 						<h2>Secure Your Account</h2>
 						<button className="modal-close" onClick={onClose}>
@@ -260,7 +265,8 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 
 					<div className="modal-body">
 						<p className="modal-description">
-							Choose how you'd like to secure your account and save your progress:
+							Choose how you'd like to secure your account and save your
+							progress:
 						</p>
 
 						<div className="method-selection">
@@ -292,7 +298,10 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 	if (method === "google") {
 		return (
 			<div className="modal-overlay" onClick={onClose}>
-				<div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
+				<div
+					className="modal-content upgrade-modal"
+					onClick={(e) => e.stopPropagation()}
+				>
 					<div className="modal-header">
 						<h2>Sign in with Google</h2>
 						<button className="modal-close" onClick={onClose}>
@@ -306,7 +315,6 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 
 						<div className="google-login-container">
 							<GoogleLoginButton
-								clientId="422626557878-tes3pkdrj04pb6n63nioktleb4n6bff8.apps.googleusercontent.com"
 								onSuccess={handleGoogleLogin}
 								onError={handleGoogleError}
 							/>
@@ -328,7 +336,10 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 	if (method === "email" && step === "otp") {
 		return (
 			<div className="modal-overlay" onClick={onClose}>
-				<div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
+				<div
+					className="modal-content upgrade-modal"
+					onClick={(e) => e.stopPropagation()}
+				>
 					<div className="modal-header">
 						<h2>Verify Your Email</h2>
 						<button className="modal-close" onClick={onClose}>
@@ -414,7 +425,10 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 	// Render email registration - Form step
 	return (
 		<div className="modal-overlay" onClick={onClose}>
-			<div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
+			<div
+				className="modal-content upgrade-modal"
+				onClick={(e) => e.stopPropagation()}
+			>
 				<div className="modal-header">
 					<h2>Register with Email</h2>
 					<button className="modal-close" onClick={onClose}>
@@ -439,7 +453,9 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 							className="form-input"
 						/>
 						{usernameAvailable !== null && (
-							<small className={usernameAvailable ? "text-success" : "text-error"}>
+							<small
+								className={usernameAvailable ? "text-success" : "text-error"}
+							>
 								{usernameAvailable ? "✅ Available" : "❌ Taken"}
 							</small>
 						)}
@@ -450,7 +466,9 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 						<input
 							type="email"
 							value={formData.email}
-							onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+							onChange={(e) =>
+								setFormData({ ...formData, email: e.target.value })
+							}
 							placeholder="your@email.com"
 							className="form-input"
 						/>
@@ -477,10 +495,7 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 						>
 							{loading ? "Sending..." : "📧 Send OTP"}
 						</button>
-						<button
-							onClick={() => setMethod(null)}
-							className="btn-secondary"
-						>
+						<button onClick={() => setMethod(null)} className="btn-secondary">
 							← Back to options
 						</button>
 					</div>
@@ -491,4 +506,3 @@ function AccountUpgradeModal({ client, onClose, onUpgraded }) {
 }
 
 export default AccountUpgradeModal;
-

@@ -965,9 +965,11 @@ function AuthTester({ client, session, setSession, onAuthSuccess }) {
 				{activeTab === "google" && (
 					<div className="card">
 						<h3>🔵 Login with Google</h3>
-						<p>Click the button below to sign in with your Google account</p>
+						<p>
+							Click the button below to sign in with your Google account via
+							Firebase
+						</p>
 						<GoogleLoginButton
-							clientId="422626557878-tes3pkdrj04pb6n63nioktleb4n6bff8.apps.googleusercontent.com"
 							onSuccess={handleGoogleLogin}
 							onError={handleGoogleError}
 						/>
