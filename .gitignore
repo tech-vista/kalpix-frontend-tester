@@ -17,6 +17,8 @@
 .env.test.local
 .env.production.local
 
+# Note: .env.production is NOT ignored - it contains production config for Vercel
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
