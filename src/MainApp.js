@@ -40,11 +40,14 @@ function MainApp() {
 			nakamaConfig.port,
 			nakamaConfig.useSSL
 		);
+		// Add httpKey to client for unauthenticated RPC calls
+		nakamaClient.httpKey = nakamaConfig.httpKey;
 		setClient(nakamaClient);
 		console.log("✅ Nakama client initialized:", {
 			host: nakamaConfig.host,
 			port: nakamaConfig.port,
 			useSSL: nakamaConfig.useSSL,
+			httpKey: nakamaConfig.httpKey,
 		});
 
 		// Try to restore session from localStorage

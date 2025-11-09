@@ -24,6 +24,7 @@ const config = {
 	port: port,
 	useSSL: useSSL,
 	serverKey: process.env.REACT_APP_NAKAMA_SERVER_KEY || "defaultkey",
+	httpKey: process.env.REACT_APP_NAKAMA_HTTP_KEY || "defaulthttpkey",
 };
 
 // Log configuration (only in development)
