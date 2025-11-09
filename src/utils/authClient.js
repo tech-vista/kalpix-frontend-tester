@@ -60,9 +60,10 @@ async function callUnauthenticatedRpc(client, rpcId, payload) {
 	const data = await response.json();
 	console.log("✅ RPC Response:", data);
 
+	// With unwrap flag, response is returned directly (not wrapped in payload)
 	return {
 		id: rpcId,
-		payload: data.payload ? JSON.parse(data.payload) : data,
+		payload: data,
 	};
 }
 
@@ -127,18 +128,23 @@ export async function loginAsGuest(client, deviceId) {
 		const sessionData = data.data || data;
 
 		// Create a session object from the response
-		// Backend SessionInfo has: userId, username, sessionToken, expiresAt
+		// Backend SessionInfo has: userId, username, sessionToken, expiresAt, refreshToken, refreshExpiresAt
 		const session = {
 			token:
 				sessionData.sessionToken ||
 				sessionData.token ||
 				sessionData.session_token,
-			refresh_token: "", // Backend doesn't provide refresh tokens
+			refresh_token:
+				sessionData.refreshToken || sessionData.refresh_token || "",
 			user_id: sessionData.userId || sessionData.user_id,
 			username: sessionData.username,
 			created_at: Date.now(),
 			expires_at:
 				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000, // 1 hour default
+			refresh_expires_at:
+				sessionData.refreshExpiresAt ||
+				sessionData.refresh_expires_at ||
+				Date.now() + 604800000, // 7 days default
 		};
 
 		return {
@@ -254,18 +260,23 @@ export async function verifyRegistrationOTP(client, email, otp) {
 		const sessionData = data.data || data;
 
 		// Create a session object from the response
-		// Backend SessionInfo has: userId, username, sessionToken, expiresAt
+		// Backend SessionInfo has: userId, username, sessionToken, expiresAt, refreshToken, refreshExpiresAt
 		const session = {
 			token:
 				sessionData.sessionToken ||
 				sessionData.token ||
 				sessionData.session_token,
-			refresh_token: "", // Backend doesn't provide refresh tokens
+			refresh_token:
+				sessionData.refreshToken || sessionData.refresh_token || "",
 			user_id: sessionData.userId || sessionData.user_id,
 			username: sessionData.username,
 			created_at: Date.now(),
 			expires_at:
 				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000, // 1 hour default
+			refresh_expires_at:
+				sessionData.refreshExpiresAt ||
+				sessionData.refresh_expires_at ||
+				Date.now() + 604800000, // 7 days default
 		};
 
 		return {
@@ -311,12 +322,17 @@ export async function skipVerification(client, email) {
 				sessionData.sessionToken ||
 				sessionData.token ||
 				sessionData.session_token,
-			refresh_token: "",
+			refresh_token:
+				sessionData.refreshToken || sessionData.refresh_token || "",
 			user_id: sessionData.userId || sessionData.user_id,
 			username: sessionData.username,
 			created_at: Date.now(),
 			expires_at:
 				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000,
+			refresh_expires_at:
+				sessionData.refreshExpiresAt ||
+				sessionData.refresh_expires_at ||
+				Date.now() + 604800000, // 7 days default
 		};
 
 		return {
@@ -386,18 +402,23 @@ export async function loginWithEmail(client, email, password) {
 		const sessionData = data.data || data;
 
 		// Create a session object from the response
-		// Backend SessionInfo has: userId, username, sessionToken, expiresAt
+		// Backend SessionInfo has: userId, username, sessionToken, expiresAt, refreshToken, refreshExpiresAt
 		const session = {
 			token:
 				sessionData.sessionToken ||
 				sessionData.token ||
 				sessionData.session_token,
-			refresh_token: "", // Backend doesn't provide refresh tokens
+			refresh_token:
+				sessionData.refreshToken || sessionData.refresh_token || "",
 			user_id: sessionData.userId || sessionData.user_id,
 			username: sessionData.username,
 			created_at: Date.now(),
 			expires_at:
 				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000, // 1 hour default
+			refresh_expires_at:
+				sessionData.refreshExpiresAt ||
+				sessionData.refresh_expires_at ||
+				Date.now() + 604800000, // 7 days default
 		};
 
 		return {
@@ -464,18 +485,23 @@ export async function verifyLoginOTP(client, email, otp) {
 		const sessionData = data.data || data;
 
 		// Create a session object from the response
-		// Backend SessionInfo has: userId, username, sessionToken, expiresAt
+		// Backend SessionInfo has: userId, username, sessionToken, expiresAt, refreshToken, refreshExpiresAt
 		const session = {
 			token:
 				sessionData.sessionToken ||
 				sessionData.token ||
 				sessionData.session_token,
-			refresh_token: "", // Backend doesn't provide refresh tokens
+			refresh_token:
+				sessionData.refreshToken || sessionData.refresh_token || "",
 			user_id: sessionData.userId || sessionData.user_id,
 			username: sessionData.username,
 			created_at: Date.now(),
 			expires_at:
 				sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000, // 1 hour default
+			refresh_expires_at:
+				sessionData.refreshExpiresAt ||
+				sessionData.refresh_expires_at ||
+				Date.now() + 604800000, // 7 days default
 		};
 
 		return {
@@ -511,18 +537,22 @@ export async function loginWithGoogle(client, idToken) {
 	const sessionData = data.data || data;
 
 	// Create a session object from the response
-	// Backend SessionInfo has: userId, username, sessionToken, expiresAt
+	// Backend SessionInfo has: userId, username, sessionToken, expiresAt, refreshToken, refreshExpiresAt
 	const session = {
 		token:
 			sessionData.sessionToken ||
 			sessionData.token ||
 			sessionData.session_token,
-		refresh_token: "", // Backend doesn't provide refresh tokens
+		refresh_token: sessionData.refreshToken || sessionData.refresh_token || "",
 		user_id: sessionData.userId || sessionData.user_id,
 		username: sessionData.username,
 		created_at: Date.now(),
 		expires_at:
 			sessionData.expiresAt || sessionData.expires_at || Date.now() + 3600000, // 1 hour default
+		refresh_expires_at:
+			sessionData.refreshExpiresAt ||
+			sessionData.refresh_expires_at ||
+			Date.now() + 604800000, // 7 days default
 	};
 
 	return {
