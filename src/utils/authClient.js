@@ -4,59 +4,27 @@
  */
 
 /**
- * Call an unauthenticated RPC using HTTP key (POST method)
- * This is a workaround because client.rpcHttpKey() uses GET which doesn't work for our backend
+ * Call an unauthenticated RPC using server key
+ * Uses Nakama client's built-in rpc() method with server key authentication
  * @param {object} client - Nakama client
  * @param {string} rpcId - RPC function ID
  * @param {object} payload - Request payload
  * @returns {Promise<object>} RPC response
  */
 async function callUnauthenticatedRpc(client, rpcId, payload) {
-	// Debug: Check what SSL property the client has
-	console.log("🔍 Client SSL properties:", {
-		ssl: client.ssl,
-		useSSL: client.useSSL,
-		_useSSL: client._useSSL,
-	});
-
-	// Determine protocol based on client SSL setting
-	// Nakama client might use different property names
-	const useSSL = client.ssl || client.useSSL || client._useSSL || false;
-	const protocol = useSSL ? "https" : "http";
-
-	// Build URL - only include port if it's not empty
-	const portPart = client.port ? `:${client.port}` : "";
-	const url = `${protocol}://${client.host}${portPart}/v2/rpc/${rpcId}?http_key=defaulthttpkey`;
-
 	console.log("🔍 Calling unauthenticated RPC:", rpcId);
-	console.log("🔍 URL:", url);
 	console.log("🔍 Payload:", payload);
 
-	// Nakama expects the payload to be a JSON string (double-encoded)
-	// So we stringify the payload object to create a JSON string
-	const payloadString = JSON.stringify(payload);
+	// Use Nakama client's built-in RPC method
+	// This automatically handles server key authentication
+	const session = null; // No session for unauthenticated calls
+	const response = await client.rpc(session, rpcId, payload);
 
-	const response = await fetch(url, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		// Send the stringified payload as a JSON string (wrapped in quotes)
-		body: JSON.stringify(payloadString),
-	});
-
-	if (!response.ok) {
-		const errorText = await response.text();
-		console.error("❌ HTTP Error:", response.status, errorText);
-		throw new Error(`HTTP ${response.status}: ${errorText}`);
-	}
-
-	const data = await response.json();
-	console.log("✅ RPC Response:", data);
+	console.log("✅ RPC Response:", response);
 
 	return {
 		id: rpcId,
-		payload: data.payload ? JSON.parse(data.payload) : data,
+		payload: response.payload ? JSON.parse(response.payload) : response,
 	};
 }
 
