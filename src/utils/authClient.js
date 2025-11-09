@@ -12,7 +12,21 @@
  * @returns {Promise<object>} RPC response
  */
 async function callUnauthenticatedRpc(client, rpcId, payload) {
-	const url = `http://${client.host}:${client.port}/v2/rpc/${rpcId}?http_key=defaulthttpkey`;
+	// Debug: Check what SSL property the client has
+	console.log("🔍 Client SSL properties:", {
+		ssl: client.ssl,
+		useSSL: client.useSSL,
+		_useSSL: client._useSSL,
+	});
+
+	// Determine protocol based on client SSL setting
+	// Nakama client might use different property names
+	const useSSL = client.ssl || client.useSSL || client._useSSL || false;
+	const protocol = useSSL ? "https" : "http";
+
+	// Build URL - only include port if it's not empty
+	const portPart = client.port ? `:${client.port}` : "";
+	const url = `${protocol}://${client.host}${portPart}/v2/rpc/${rpcId}?http_key=defaulthttpkey`;
 
 	console.log("🔍 Calling unauthenticated RPC:", rpcId);
 	console.log("🔍 URL:", url);

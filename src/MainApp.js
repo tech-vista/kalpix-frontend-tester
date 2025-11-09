@@ -8,6 +8,9 @@ import {
 import { Client } from "@heroiclabs/nakama-js";
 import "./App.css";
 
+// Configuration
+import nakamaConfig from "./config/nakama";
+
 // Pages
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
@@ -31,8 +34,18 @@ function MainApp() {
 
 	// Initialize Nakama client
 	useEffect(() => {
-		const nakamaClient = new Client("defaultkey", "127.0.0.1", "7350", false);
+		const nakamaClient = new Client(
+			nakamaConfig.serverKey,
+			nakamaConfig.host,
+			nakamaConfig.port,
+			nakamaConfig.useSSL
+		);
 		setClient(nakamaClient);
+		console.log("✅ Nakama client initialized:", {
+			host: nakamaConfig.host,
+			port: nakamaConfig.port,
+			useSSL: nakamaConfig.useSSL,
+		});
 
 		// Try to restore session from localStorage
 		const savedSession = localStorage.getItem("nakama_session");
@@ -68,7 +81,7 @@ function MainApp() {
 		const connectSocket = async () => {
 			if (client && session && !socket) {
 				try {
-					const newSocket = client.createSocket(false, false);
+					const newSocket = client.createSocket(nakamaConfig.useSSL, false);
 
 					// Create a proper Nakama Session object from our session data
 					// The Nakama SDK expects a Session object with specific properties

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Client } from "@heroiclabs/nakama-js";
 import "./App.css";
 
+// Configuration
+import nakamaConfig from "./config/nakama";
+
 // Components
 import AuthSection from "./components/AuthSection";
 import MatchSection from "./components/MatchSection";
@@ -117,8 +120,18 @@ function App({
 	// Initialize Nakama client (only if not using external client)
 	useEffect(() => {
 		if (!externalClient) {
-			const nakamaClient = new Client("defaultkey", "127.0.0.1", "7350", false);
+			const nakamaClient = new Client(
+				nakamaConfig.serverKey,
+				nakamaConfig.host,
+				nakamaConfig.port,
+				nakamaConfig.useSSL
+			);
 			setClient(nakamaClient);
+			console.log("✅ Nakama client initialized:", {
+				host: nakamaConfig.host,
+				port: nakamaConfig.port,
+				useSSL: nakamaConfig.useSSL,
+			});
 		}
 
 		return () => {

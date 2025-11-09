@@ -219,7 +219,7 @@ function GoogleLoginButton({ onSuccess, onError }) {
 										borderRadius: "3px",
 									}}
 								>
-									http://localhost:7350/v2/rpc/auth/firebase_login?http_key=defaulthttpkey
+									http://kalpix-backend-production.up.railway.app:7350/v2/rpc/auth/firebase_login?http_key=defaulthttpkey
 								</code>
 							</li>
 							<li>
